@@ -557,7 +557,9 @@ cp config-%{version}-%{_target_cpu} .config
 %{__make} -s ARCH=%{bldarch} listnewconfig | grep -E '^CONFIG_' > newoptions-el9-%{_target_cpu}.txt || true
 if [ -s newoptions-el9-%{_target_cpu}.txt ]; then
 	cat newoptions-el9-%{_target_cpu}.txt
+%if "%{name}" == "kernel-ml" || "%{name}" == "kernel-ml"
 	exit 1
+%endif
 fi
 rm -f newoptions-el9-%{_target_cpu}.txt
 %endif
