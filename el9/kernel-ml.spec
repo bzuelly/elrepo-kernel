@@ -7,6 +7,6 @@ Name: kernel-ml
 
 %global src_dir linux-%{major_ver}.%{minor_ver}.%{patch_ver}
 
-Source0: https://cdn.kernel.org/pub/linux/kernel/v%{major_ver}.x/linux-%{version}.tar.xz
+Source0: https://cdn.kernel.org/pub/linux/kernel/v%{major_ver}.x/linux-%{major_ver}.%{minor_ver}.%{patch_ver}.tar.gz
 Source1: kernel-common.inc
 %include %{SOURCE1}
