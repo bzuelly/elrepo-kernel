@@ -6,7 +6,7 @@
 
 Name: kernel-next
 
-%global src_dir linux-next-next-%{next_snapshot_date}
+%global src_dir linux-next-%{next_snapshot_date}
 
 Source0: https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/snapshot/linux-next-next-%{next_snapshot_date}.tar.gz
 Source1: kernel-common.inc
