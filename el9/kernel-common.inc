@@ -23,8 +23,17 @@
 # change below to w4T.xzdio):
 %global _binary_payload w3T.xzdio
 
+# Define the version of the Linux Kernel Archive tarball.
+%global LKAver %{major_ver}.%{minor_ver}.%{patch_ver}
+
 # Define the buildid, if required.
 #global buildid .local
+
+# Determine the sublevel number and set pkg_version.
+%global pkg_version %{LKAver}
+
+# Set pkg_release.
+%global pkg_release 1%{?buildid}%{?dist}
 
 # Architectures upon which we can sign the kernel
 # for secure boot authentication.
@@ -510,8 +519,8 @@ exit 1
 %endif
 %endif
 
-%setup -q -n %{name}-%{version} -c
-mv linux-%{LKAver} linux-%{KVERREL}
+%setup -q -n %{src_dir} -c
+mv %{src_dir} linux-%{KVERREL}
 
 pushd linux-%{KVERREL} > /dev/null
 
