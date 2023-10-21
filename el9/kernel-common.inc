@@ -23,22 +23,8 @@
 # change below to w4T.xzdio):
 %global _binary_payload w3T.xzdio
 
-# Define the version of the Linux Kernel Archive tarball.
-%global LKAver 6.1.59
-
 # Define the buildid, if required.
 #global buildid .local
-
-# Determine the sublevel number and set pkg_version.
-%define sublevel %(echo %{LKAver} | %{__awk} -F\. '{ print $3 }')
-%if "%{sublevel}" == ""
-%global pkg_version %{LKAver}.0
-%else
-%global pkg_version %{LKAver}
-%endif
-
-# Set pkg_release.
-%global pkg_release 1%{?buildid}%{?dist}
 
 # Architectures upon which we can sign the kernel
 # for secure boot authentication.
@@ -79,13 +65,13 @@
 # by later architecture-specific checks. These can also be disabled by using
 # --without <opt> in the rpmbuild command, or by forcing these values to 0.
 #
-# kernel-lt
+# kernel-ml
 %define with_std          %{?_without_std:          0} %{?!_without_std:          1}
 #
-# kernel-lt-headers
+# kernel-ml-headers
 %define with_headers      %{?_without_headers:      0} %{?!_without_headers:      1}
 #
-# kernel-lt-doc
+# kernel-ml-doc
 %define with_doc          %{?_without_doc:          0} %{?!_without_doc:          1}
 #
 # perf
@@ -100,13 +86,13 @@
 # control whether to install the vdso directories
 %define with_vdso_install %{?_without_vdso_install: 0} %{?!_without_vdso_install: 1}
 #
-# Additional option for toracat-friendly, one-off, kernel-lt building.
-# Only build the base kernel-lt (--with baseonly):
+# Additional option for toracat-friendly, one-off, kernel-ml building.
+# Only build the base kernel-ml (--with baseonly):
 %define with_baseonly     %{?_with_baseonly:        1} %{?!_with_baseonly:        0}
 
 %global KVERREL %{pkg_version}-%{pkg_release}.%{_target_cpu}
 
-# If requested, only build base kernel-lt package.
+# If requested, only build base kernel-ml package.
 %if %{with_baseonly}
 %define with_doc 0
 %define with_perf 0
@@ -151,14 +137,6 @@
 %define _use_vdso 0
 %endif
 
-#
-# Packages that need to be installed before the kernel is installed,
-# as they will be used by the %%post scripts.
-#
-%define kernel_lt_prereq  coreutils, systemd >= 203-2, /usr/bin/kernel-install
-%define initrd_prereq  dracut >= 027
-
-Name: kernel-lt
 Summary: The Linux kernel. (The core of any Linux kernel based operating system.)
 License: GPLv2 and Redistributable, no modification permitted.
 URL: https://www.kernel.org/
@@ -172,7 +150,7 @@ Requires: %{name}-core-uname-r = %{KVERREL}
 Requires: %{name}-modules-uname-r = %{KVERREL}
 
 #
-# List the packages required for the kernel-lt build.
+# List the packages required for the kernel-ml build.
 #
 BuildRequires: bash, bc, binutils, bison, bzip2, coreutils, diffutils, dwarves, elfutils-devel
 BuildRequires: findutils, flex, gawk, gcc, gcc-c++, gcc-plugin-devel, git-core, glibc-static
@@ -223,7 +201,7 @@ BuildConflicts: rhbuildsys(DiskFree) < 500Mb
 ###
 ### Sources
 ###
-Source0: https://www.kernel.org/pub/linux/kernel/v6.x/linux-%{LKAver}.tar.xz
+Source0: https://cdn.kernel.org/pub/linux/kernel/v%{major_ver}.x/linux-%{version}.tar.xz
 
 Source2: config-%{version}-x86_64
 Source4: config-%{version}-aarch64
@@ -244,9 +222,6 @@ Source2000: cpupower.service
 Source2001: cpupower.config
 Source2002: kvm_stat.logrotate
 
-# Do not package the source tarball.
-NoSource: 0
-
 %if %{signkernel}
 %define secureboot_ca_0 %{_datadir}/pki/sb-certs/secureboot-ca-%{_arch}.cer
 %define secureboot_key_0 %{_datadir}/pki/sb-certs/secureboot-kernel-%{_arch}.cer
@@ -258,26 +233,26 @@ NoSource: 0
 The %{name} meta package.
 
 #
-# This macro does requires, provides, conflicts, obsoletes for a kernel-lt package.
-#	%%kernel_lt_reqprovconf <subpackage>
-# It uses any kernel_lt_<subpackage>_conflicts and kernel_lt_<subpackage>_obsoletes
+# This macro does requires, provides, conflicts, obsoletes for a kernel-ml package.
+#	%%reqprovconf <subpackage>
+# It uses any <subpackage>_conflicts and <subpackage>_obsoletes
 # macros defined above.
 #
-%define kernel_lt_reqprovconf \
+%define reqprovconf \
 Provides: %{name} = %{pkg_version}-%{pkg_release}\
 Provides: %{name}-%{_target_cpu} = %{pkg_version}-%{pkg_release}%{?1:+%{1}}\
 Provides: %{name}-drm-nouveau = 16\
 Provides: %{name}-uname-r = %{KVERREL}%{?1:+%{1}}\
-Requires(pre): %{kernel_lt_prereq}\
-Requires(pre): %{initrd_prereq}\
+Requires(pre): coreutils, systemd >= 203-2, /usr/bin/kernel-install\
+Requires(pre): dracut >= 027\
 Requires(pre): ((linux-firmware >= 20150904-56.git6ebf5d57) if linux-firmware)\
 Recommends: linux-firmware\
 Requires(preun): systemd >= 200\
 Conflicts: xfsprogs < 4.3.0-1\
 Conflicts: xorg-x11-drv-vmmouse < 13.0.99\
-%{expand:%%{?kernel_lt%{?1:_%{1}}_conflicts:Conflicts: %%{%{name}%{?1:_%{1}}_conflicts}}}\
-%{expand:%%{?kernel_lt%{?1:_%{1}}_obsoletes:Obsoletes: %%{%{name}%{?1:_%{1}}_obsoletes}}}\
-%{expand:%%{?kernel_lt%{?1:_%{1}}_provides:Provides: %%{%{name}%{?1:_%{1}}_provides}}}\
+%{expand:%%{?name%{?1:_%{1}}conflicts:Conflicts: %%{%{name}%{?1:_%{1}}conflicts}}}\
+%{expand:%%{?name%{?1:_%{1}}obsoletes:Obsoletes: %%{%{name}%{?1:_%{1}}obsoletes}}}\
+%{expand:%%{?name%{?1:_%{1}}provides:Provides: %%{%{name}%{?1:_%{1}}provides}}}\
 # We can't let RPM do the dependencies automatically because it'll then pick up\
 # a correct but undesirable perl dependency from the module headers which\
 # isn't required for the kernel proper to function.\
@@ -377,17 +352,17 @@ and simple manipulation of eBPF programs and maps.
 %endif
 
 #
-# This macro creates a kernel-lt-<subpackage>-devel package.
-#	%%kernel_lt_devel_package [-m] <subpackage> <pretty-name>
+# This macro creates a kernel-ml-<subpackage>-devel package.
+#	%%devel_package [-m] <subpackage> <pretty-name>
 #
-%define kernel_lt_devel_package(m) \
+%define devel_package(m) \
 %package %{?1:%{1}-}devel\
 Summary: Development package for building %{name} modules to match the %{?2:%{2} }%{name}.\
 Provides: %{name}%{?1:-%{1}}-devel-%{_target_cpu} = %{version}-%{release}\
 Provides: %{name}-devel-%{_target_cpu} = %{version}-%{release}%{?1:+%{1}}\
 Provides: %{name}-devel-uname-r = %{KVERREL}%{?1:+%{1}}\
 Provides: installonlypkg(kernel)\
-Provides: installonlypkg(kernel-lt)\
+Provides: installonlypkg(kernel-ml)\
 AutoReqProv: no\
 Requires(pre): findutils\
 Requires: findutils\
@@ -407,11 +382,11 @@ against the %{?2:%{2} }%{name} package.\
 %{nil}
 
 #
-# This macro creates an empty kernel-lt-<subpackage>-devel-matched package that
+# This macro creates an empty kernel-ml-<subpackage>-devel-matched package that
 # requires both the core and devel packages locked on the same version.
-#	%%kernel_lt_devel_matched_package [-m] <subpackage> <pretty-name>
+#	%%devel_matched_package [-m] <subpackage> <pretty-name>
 #
-%define kernel_lt_devel_matched_package(m) \
+%define devel_matched_package(m) \
 %package %{?1:%{1}-}devel-matched\
 Summary: Meta package to install matching core and devel packages for a given %{?2:%{2} }%{name}.\
 Requires: %{name}%{?1:-%{1}}-devel = %{version}-%{release}\
@@ -421,17 +396,17 @@ This meta package is used to install matching core and devel packages for a give
 %{nil}
 
 #
-# This macro creates a kernel-lt-<subpackage>-modules-extra package.
-#	%%kernel_lt_modules_extra_package [-m] <subpackage> <pretty-name>
+# This macro creates a kernel-ml-<subpackage>-modules-extra package.
+#	%%modules_extra_package [-m] <subpackage> <pretty-name>
 #
-%define kernel_lt_modules_extra_package(m) \
+%define modules_extra_package(m) \
 %package %{?1:%{1}-}modules-extra\
 Summary: Extra %{name} modules to match the %{?2:%{2} }%{name}.\
 Provides: %{name}%{?1:-%{1}}-modules-extra-%{_target_cpu} = %{version}-%{release}\
 Provides: %{name}%{?1:-%{1}}-modules-extra-%{_target_cpu} = %{version}-%{release}%{?1:+%{1}}\
 Provides: %{name}%{?1:-%{1}}-modules-extra = %{version}-%{release}%{?1:+%{1}}\
 Provides: installonlypkg(kernel-module)\
-Provides: installonlypkg(kernel-lt-module)\
+Provides: installonlypkg(kernel-ml-module)\
 Provides: %{name}%{?1:-%{1}}-modules-extra-uname-r = %{KVERREL}%{?1:+%{1}}\
 Requires: %{name}-uname-r = %{KVERREL}%{?1:+%{1}}\
 Requires: %{name}%{?1:-%{1}}-modules-uname-r = %{KVERREL}%{?1:+%{1}}\
@@ -445,17 +420,17 @@ This package provides less commonly used %{name} modules for the %{?2:%{2} }%{na
 %{nil}
 
 #
-# This macro creates a kernel-lt-<subpackage>-modules package.
-#	%%kernel_lt_modules_package [-m] <subpackage> <pretty-name>
+# This macro creates a kernel-ml-<subpackage>-modules package.
+#	%%modules_package [-m] <subpackage> <pretty-name>
 #
-%define kernel_lt_modules_package(m) \
+%define modules_package(m) \
 %package %{?1:%{1}-}modules\
 Summary: %{name} modules to match the %{?2:%{2}-}core %{name}.\
 Provides: %{name}%{?1:-%{1}}-modules-%{_target_cpu} = %{version}-%{release}\
 Provides: %{name}-modules-%{_target_cpu} = %{version}-%{release}%{?1:+%{1}}\
 Provides: %{name}-modules = %{version}-%{release}%{?1:+%{1}}\
 Provides: installonlypkg(kernel-module)\
-Provides: installonlypkg(kernel-lt-module)\
+Provides: installonlypkg(kernel-ml-module)\
 Provides: %{name}%{?1:-%{1}}-modules-uname-r = %{KVERREL}%{?1:+%{1}}\
 Requires: %{name}-uname-r = %{KVERREL}%{?1:+%{1}}\
 %if %{-m:1}%{!-m:0}\
@@ -468,48 +443,48 @@ This package provides commonly used %{name} modules for the %{?2:%{2}-}core %{na
 %{nil}
 
 #
-# this macro creates a kernel-lt-<subpackage> meta package.
-#	%%kernel_lt_meta_package <subpackage>
+# this macro creates a kernel-ml-<subpackage> meta package.
+#	%%meta_package <subpackage>
 #
-%define kernel_lt_meta_package() \
+%define meta_package() \
 %package %{1}\
 Summary: %{name} meta-package for the %{1} ${name}.\
 Requires: %{name}-%{1}-core-uname-r = %{KVERREL}+%{1}\
 Requires: %{name}-%{1}-modules-uname-r = %{KVERREL}+%{1}\
 Provides: installonlypkg(kernel)\
-Provides: installonlypkg(kernel-lt)\
+Provides: installonlypkg(kernel-ml)\
 %description %{1}\
 The meta-package for the %{1} %{name}.\
 %{nil}
 
 #
-# This macro creates a kernel-lt-<subpackage> and its -devel.
-#	%%define variant_summary The Linux kernel-lt compiled for <configuration>
-#	%%kernel_lt_variant_package [-n <pretty-name>] [-m] <subpackage>
+# This macro creates a kernel-ml-<subpackage> and its -devel.
+#	%%define variant_summary The Linux kernel-ml compiled for <configuration>
+#	%%variant_package [-n <pretty-name>] [-m] <subpackage>
 #
-%define kernel_lt_variant_package(n:m) \
+%define variant_package(n:m) \
 %package %{?1:%{1}-}core\
 Summary: %{variant_summary}.\
 Provides: %{name}-%{?1:%{1}-}core-uname-r = %{KVERREL}%{?1:+%{1}}\
 Provides: installonlypkg(kernel)\
-Provides: installonlypkg(kernel-lt)\
+Provides: installonlypkg(kernel-ml)\
 %if %{-m:1}%{!-m:0}\
 Requires: %{name}-core-uname-r = %{KVERREL}\
 %endif\
-%{expand:%%kernel_lt_reqprovconf}\
+%{expand:%%reqprovconf}\
 %if %{?1:1} %{!?1:0} \
-%{expand:%%kernel_lt_meta_package %{?1:%{1}}}\
+%{expand:%%meta_package %{?1:%{1}}}\
 %endif\
-%{expand:%%kernel_lt_devel_package %{?1:%{1}} %{!?{-n}:%{1}}%{?{-n}:%{-n*}} %{-m:%{-m}}}\
-%{expand:%%kernel_lt_devel_matched_package %{?1:%{1}} %{!?{-n}:%{1}}%{?{-n}:%{-n*}} %{-m:%{-m}}}\
-%{expand:%%kernel_lt_modules_package %{?1:%{1}} %{!?{-n}:%{1}}%{?{-n}:%{-n*}} %{-m:%{-m}}}\
-%{expand:%%kernel_lt_modules_extra_package %{?1:%{1}} %{!?{-n}:%{1}}%{?{-n}:%{-n*}} %{-m:%{-m}}}\
+%{expand:%%devel_package %{?1:%{1}} %{!?{-n}:%{1}}%{?{-n}:%{-n*}} %{-m:%{-m}}}\
+%{expand:%%devel_matched_package %{?1:%{1}} %{!?{-n}:%{1}}%{?{-n}:%{-n*}} %{-m:%{-m}}}\
+%{expand:%%modules_package %{?1:%{1}} %{!?{-n}:%{1}}%{?{-n}:%{-n*}} %{-m:%{-m}}}\
+%{expand:%%modules_extra_package %{?1:%{1}} %{!?{-n}:%{1}}%{?{-n}:%{-n*}} %{-m:%{-m}}}\
 %{nil}
 
 # And, finally, the main -core package.
 
 %define variant_summary The Linux kernel.
-%kernel_lt_variant_package
+%variant_package
 %description core
 The %{name} package contains the Linux kernel (vmlinuz), the core of any
 Linux kernel based operating system. The %{name} package handles the basic
@@ -683,9 +658,13 @@ pushd tools/gpio > /dev/null
 %{__make} -s %{?_smp_mflags}
 popd > /dev/null
 
+### BCAT
+%if 0
 pushd tools/vm > /dev/null
 %{__make} -s %{?_smp_mflags} slabinfo page_owner_sort
 popd > /dev/null
+%endif
+### BCAT
 %endif
 
 %if %{with_bpftool}
@@ -844,7 +823,7 @@ cp -a scripts $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build
 rm -fr $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build/scripts/tracing
 rm -f $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build/scripts/spdxcheck.py
 
-# Files for 'make scripts' to succeed with kernel-lt-devel.
+# Files for 'make scripts' to succeed with kernel-ml-devel.
 mkdir -p $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build/security/selinux/include
 cp -a --parents security/selinux/include/classmap.h $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build
 cp -a --parents security/selinux/include/initial_sid_to_string.h $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build
@@ -852,7 +831,7 @@ mkdir -p $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build/tools/include/tools
 cp -a --parents tools/include/tools/be_byteshift.h $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build
 cp -a --parents tools/include/tools/le_byteshift.h $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build
 
-# Files for 'make prepare' to succeed with kernel-lt-devel.
+# Files for 'make prepare' to succeed with kernel-ml-devel.
 cp -a --parents tools/include/linux/compiler* $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build
 cp -a --parents tools/include/linux/types.h $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build
 cp -a --parents tools/build/Build.include $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build
@@ -911,7 +890,7 @@ cp -a --parents arch/arm/include/asm/opcodes.h $RPM_BUILD_ROOT/lib/modules/%{KVE
 cp -a include $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build/include
 
 %ifarch x86_64
-# Files required for 'make prepare' to succeed with kernel-lt-devel.
+# Files required for 'make prepare' to succeed with kernel-ml-devel.
 cp -a --parents arch/x86/entry/syscalls/syscall_32.tbl $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build/
 cp -a --parents arch/x86/entry/syscalls/syscall_64.tbl $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build/
 cp -a --parents arch/x86/tools/relocs_32.c $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build/
@@ -992,11 +971,11 @@ remove_depmod_files()
 
 remove_depmod_files
 
-# Identify modules in the kernel-lt-modules-extras package
+# Identify modules in the kernel-ml-modules-extras package
 %{SOURCE20} $RPM_BUILD_ROOT lib/modules/%{KVERREL} %{SOURCE26}
 
 #
-# Generate the kernel-lt-core and kernel-lt-modules file lists.
+# Generate the kernel-ml-core and kernel-ml-modules file lists.
 #
 
 # Make a copy of the System.map file for depmod to use.
@@ -1009,11 +988,11 @@ pushd $RPM_BUILD_ROOT > /dev/null
 mkdir restore
 cp -r lib/modules/%{KVERREL}/* restore/
 
-# Don't include anything going into kernel-lt-modules-extra in the file lists.
+# Don't include anything going into kernel-ml-modules-extra in the file lists.
 xargs rm -fr < mod-extra.list
 
 # Find all the module files and filter them out into the core and modules lists.
-# This actually removes anything going into kernel-lt-modules from the directory.
+# This actually removes anything going into kernel-ml-modules from the directory.
 find lib/modules/%{KVERREL}/kernel -name *.ko -type f | sort -n > modules.list
 cp $RPM_SOURCE_DIR/filter-*.sh .
 ./filter-modules.sh modules.list %{_target_cpu}
@@ -1036,7 +1015,7 @@ remove_depmod_files
 ### BCAT
 
 # Go back and find all of the various directories in the tree.
-# We use this for the directory lists in kernel-lt-core.
+# We use this for the directory lists in kernel-ml-core.
 find lib/modules/%{KVERREL}/kernel -mindepth 1 -type d | sort -n > module-dirs.list
 
 # Cleanup.
@@ -1065,15 +1044,15 @@ mv $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build $RPM_BUILD_ROOT/usr/src/kernels/
 
 # This is going to create a broken link during the build but we don't use
 # it after this point. We need the link to actually point to something
-# for when the kernel-lt-devel package is installed.
+# for when the kernel-ml-devel package is installed.
 ln -sf /usr/src/kernels/%{KVERREL} $RPM_BUILD_ROOT/lib/modules/%{KVERREL}/build
 
-# Move the generated vmlinux.h file into the kernel-lt-devel directory structure.
+# Move the generated vmlinux.h file into the kernel-ml-devel directory structure.
 if [ -f tools/bpf/bpftool/vmlinux.h ]; then
 	mv tools/bpf/bpftool/vmlinux.h $RPM_BUILD_ROOT/usr/src/kernels/%{KVERREL}/
 fi
 
-# Purge the kernel-lt-devel tree of leftover junk.
+# Purge the kernel-ml-devel tree of leftover junk.
 find $RPM_BUILD_ROOT/usr/src/kernels -name ".*.cmd" -type f -delete
 
 # Red Hat UEFI Secure Boot CA certificate, which can be used to authenticate the kernel.
@@ -1090,11 +1069,11 @@ cp certs/signing_key.x509 certs/signing_key.x509.sign
 %endif
 
 # We have to do the headers install before the tools install because the
-# kernel-lt headers_install will remove any header files in /usr/include that
+# kernel-ml headers_install will remove any header files in /usr/include that
 # it doesn't install itself.
 
 %if %{with_headers}
-# Install kernel-lt headers
+# Install kernel-ml headers
 %{__make} -s ARCH=%{hdrarch} INSTALL_HDR_PATH=$RPM_BUILD_ROOT/usr headers_install
 
 find $RPM_BUILD_ROOT/usr/include \
@@ -1183,10 +1162,14 @@ pushd tools/kvm/kvm_stat > /dev/null
 install -m644 -D kvm_stat.service $RPM_BUILD_ROOT%{_unitdir}/kvm_stat.service
 popd > /dev/null
 
+### BCAT
+%if 0
 pushd tools/vm > /dev/null
 install -m755 slabinfo $RPM_BUILD_ROOT%{_bindir}/slabinfo
 install -m755 page_owner_sort $RPM_BUILD_ROOT%{_bindir}/page_owner_sort
 popd > /dev/null
+%endif
+### BCAT
 %endif
 
 %if %{with_bpftool}
@@ -1226,13 +1209,13 @@ popd > /dev/null
 %endif
 
 #
-# This macro defines a %%post script for a kernel-lt*-devel package.
-#	%%kernel_lt_devel_post [<subpackage>]
+# This macro defines a %%post script for a kernel-ml*-devel package.
+#	%%devel_post [<subpackage>]
 # Note we don't run hardlink if ostree is in use, as ostree is
 # a far more sophisticated hardlink implementation.
 # https://github.com/projectatomic/rpm-ostree/commit/58a79056a889be8814aa51f507b2c7a4dccee526
 #
-%define kernel_lt_devel_post() \
+%define devel_post() \
 %{expand:%%post %{?1:%{1}-}devel}\
 if [ -f /etc/sysconfig/kernel ]\
 then\
@@ -1248,11 +1231,11 @@ fi\
 %{nil}
 
 #
-# This macro defines a %%post script for a kernel-lt*-modules-extra package.
+# This macro defines a %%post script for a kernel-ml*-modules-extra package.
 # It also defines a %%postun script that does the same thing.
-#	%%kernel_lt_modules_extra_post [<subpackage>]
+#	%%modules_extra_post [<subpackage>]
 #
-%define kernel_lt_modules_extra_post() \
+%define modules_extra_post() \
 %{expand:%%post %{?1:%{1}-}modules-extra}\
 /sbin/depmod -a %{KVERREL}%{?1:+%{1}}\
 %{nil}\
@@ -1261,11 +1244,11 @@ fi\
 %{nil}
 
 #
-# This macro defines a %%post script for a kernel-lt*-modules package.
+# This macro defines a %%post script for a kernel-ml*-modules package.
 # It also defines a %%postun script that does the same thing.
-#	%%kernel_lt_modules_post [<subpackage>]
+#	%%modules_post [<subpackage>]
 #
-%define kernel_lt_modules_post() \
+%define modules_post() \
 %{expand:%%post %{?1:%{1}-}modules}\
 /sbin/depmod -a %{KVERREL}%{?1:+%{1}}\
 %{nil}\
@@ -1273,11 +1256,11 @@ fi\
 /sbin/depmod -a %{KVERREL}%{?1:+%{1}}\
 %{nil}
 
-# This macro defines a %%posttrans script for a kernel-lt package.
-#	%%kernel_lt_variant_posttrans [<subpackage>]
+# This macro defines a %%posttrans script for a kernel-ml package.
+#	%%variant_posttrans [<subpackage>]
 # More text can follow to go at the end of this variant's %%post.
 #
-%define kernel_lt_variant_posttrans() \
+%define variant_posttrans() \
 %{expand:%%posttrans %{?1:%{1}-}core}\
 if [ -x %{_sbindir}/weak-modules ]\
 then\
@@ -1287,15 +1270,15 @@ fi\
 %{nil}
 
 #
-# This macro defines a %%post script for a kernel-lt package and its devel package.
-#	%%kernel_lt_variant_post [-v <subpackage>] [-r <replace>]
+# This macro defines a %%post script for a kernel-ml package and its devel package.
+#	%%variant_post [-v <subpackage>] [-r <replace>]
 # More text can follow to go at the end of this variant's %%post.
 #
-%define kernel_lt_variant_post(v:r:) \
-%{expand:%%kernel_lt_devel_post %{?-v*}}\
-%{expand:%%kernel_lt_modules_post %{?-v*}}\
-%{expand:%%kernel_lt_modules_extra_post %{?-v*}}\
-%{expand:%%kernel_lt_variant_posttrans %{?-v*}}\
+%define variant_post(v:r:) \
+%{expand:%%devel_post %{?-v*}}\
+%{expand:%%modules_post %{?-v*}}\
+%{expand:%%modules_extra_post %{?-v*}}\
+%{expand:%%variant_posttrans %{?-v*}}\
 %{expand:%%post %{?-v*:%{-v*}-}core}\
 %{-r:\
 if [ `uname -i` == "x86_64" ] &&\
@@ -1305,10 +1288,10 @@ fi}\
 %{nil}
 
 #
-# This macro defines a %%preun script for a kernel-lt package.
-#	%%kernel_lt_variant_preun <subpackage>
+# This macro defines a %%preun script for a kernel-ml package.
+#	%%variant_preun <subpackage>
 #
-%define kernel_lt_variant_preun() \
+%define variant_preun() \
 %{expand:%%preun %{?1:%{1}-}core}\
 /bin/kernel-install remove %{KVERREL}%{?1:+%{1}} /lib/modules/%{KVERREL}%{?1:+%{1}}/vmlinuz || exit $?\
 if [ -x %{_sbindir}/weak-modules ]\
@@ -1317,8 +1300,8 @@ then\
 fi\
 %{nil}
 
-%kernel_lt_variant_preun
-%kernel_lt_variant_post -r kernel-smp
+%variant_preun
+%variant_post -r kernel-smp
 
 if [ -x /sbin/ldconfig ]
 then
@@ -1387,8 +1370,12 @@ fi
 %{_bindir}/kvm_stat
 %{_unitdir}/kvm_stat.service
 %config(noreplace) %{_sysconfdir}/logrotate.d/kvm_stat
+### BCAT
+%if 0
 %{_bindir}/page_owner_sort
 %{_bindir}/slabinfo
+%endif
+### BCAT
 
 %files -n %{name}-tools-libs
 %{_libdir}/libcpupower.so.0
@@ -1422,11 +1409,11 @@ fi
 %endif
 
 #
-# This macro defines the %%files sections for a kernel-lt package
+# This macro defines the %%files sections for a kernel-ml package
 # and its devel package.
-#	%%kernel_lt_variant_files [-k vmlinux] <use_vdso> <condition> <subpackage>
+#	%%variant_files [-k vmlinux] <use_vdso> <condition> <subpackage>
 #
-%define kernel_lt_variant_files(k:) \
+%define variant_files(k:) \
 %if %{2}\
 %{expand:%%files -f %{name}-%{?3:%{3}-}core.list %{?1:-f %{name}-%{?3:%{3}-}ldsoconf.list} %{?3:%{3}-}core}\
 %{!?_licensedir:%global license %%doc}\
@@ -1472,144 +1459,216 @@ fi
 %endif\
 %{nil}
 
-%kernel_lt_variant_files %{_use_vdso} %{with_std}
+%variant_files %{_use_vdso} %{with_std}
 
 %changelog
-* Thu Oct 19 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.59-1
-- Updated with the 6.1.59 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.59]
+* Thu Oct 19 2023 Akemi Yagi <toracat@elrepo.org> - 6.5.8-1
+- Updated with the 6.5.8 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.5.8]
 
-* Sun Oct 15 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.58-1
-- Updated with the 6.1.58 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.58]
+* Tue Oct 10 2023 Akemi Yagi <toracat@elrepo.org> - 6.5.7-1
+- Updated with the 6.5.7 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.5.7]
 
-* Tue Oct 10 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.57-1
-- Updated with the 6.1.57 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.57]
+* Fri Oct 06 2023 Akemi Yagi <toracat@elrepo.org> - 6.5.6-1
+- Updated with the 6.5.6 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.5.6]
+- Re-enable perf 
 
-* Fri Oct 06 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.56-1
-- Updated with the 6.1.56 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.56]
+* Sat Sep 23 2023 Akemi Yagi <toracat@elrepo.org> - 6.5.5-1
+- Updated with the 6.5.5 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.5.5]
 
-* Sat Sep 23 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.55-1
-- Updated with the 6.1.55 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.55]
+* Tue Sep 19 2023 Akemi Yagi <toracat@elrepo.org> - 6.5.4-1
+- Updated with the 6.5.4 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.5.4]
+- Disable perf (build error due to bison < 3.81)
 
-* Tue Sep 19 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.54-1
-- Updated with the 6.1.54 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.54]
-
-* Wed Sep 13 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.53-1
-- Updated with the 6.1.53 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.53]
+* Wed Sep 13 2023 Akemi Yagi <toracat@elrepo.org> - 6.5.3-1
+- Updated with the 6.5.3 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.5.3]
 - CONFIG_VIDEO_V4L2_SUBDEV_API=y
 - CONFIG_VIDEO_CAMERA_SENSOR=y
 
-* Wed Sep 06 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.52-1
-- Updated with the 6.1.52 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.52]
+* Wed Sep 06 2023 Akemi Yagi <toracat@elrepo.org> - 6.5.2-1
+- Updated with the 6.5.2 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.5.2]
 
-* Sat Sep 02 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.51-1
-- Updated with the 6.1.51 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.51]
+* Sat Sep 02 2023 Akemi Yagi <toracat@elrepo.org> - 6.5.1-1
+- Updated with the 6.5.1 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.5.1]
 
-* Wed Aug 30 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.50-1
-- Updated with the 6.1.50 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.50]
+* Sun Aug 27 2023 Akemi Yagi <toracat@elrepo.org> - 6.5.0-1
+- Updated with the 6.5 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.5]
+- CONFIG_DMA_BOUNCE_UNALIGNED_KMALLOC=y,  CONFIG_HAVE_HARDLOCKUP_DETECTOR_PERF=y,
+- CONFIG_HAVE_PERF_EVENTS_NMI=y,  CONFIG_HAVE_SAMPLE_FTRACE_DIRECT_MULTI=y,
+- CONFIG_HAVE_SAMPLE_FTRACE_DIRECT=y, CONFIG_HW_RANDOM_HISTB=y,
+- CONFIG_INTERCONNECT_CLK=m,
+- For aarch64 only.
+- CONFIG_HARDLOCKUP_DETECTOR_COUNTS_HRTIMER=y, CONFIG_HOTPLUG_CORE_SYNC_FULL=y,
+- CONFIG_X86_AMD_PSTATE_DEFAULT_MODE=3, CONFIG_HOTPLUG_PARALLEL=y,
+- CONFIG_HOTPLUG_SPLIT_STARTUP=y,
+- For x86_64 only.
+- CONFIG_CACHESTAT_SYSCALL=y, CONFIG_CHECKSUM_KUNIT=m,
+- CONFIG_CRYPTO_GENIV=y, CONFIG_CRYPTO_SIG2=y,
+- CONFIG_CXL_PMU=y, CONFIG_FB_IO_HELPERS=y,
+- CONFIG_FB_SYS_HELPERS_DEFERRED=y, CONFIG_FB_SYS_HELPERS=y,
+- CONFIG_FW_UPLOAD=y, CONFIG_HAVE_FUNCTION_GRAPH_RETVAL=y,
+- CONFIG_HAVE_HARDLOCKUP_DETECTOR_BUDDY=y, CONFIG_HOTPLUG_CORE_SYNC_DEAD=y,
+- CONFIG_HOTPLUG_CORE_SYNC=y, CONFIG_LAN966X_DCB=y,
+- CONFIG_LIQUIDIO_CORE=m, CONFIG_MDIO_REGMAP=m,
+- CONFIG_NEED_SG_DMA_FLAGS=y, CONFIG_PCS_LYNX=m,
+- CONFIG_PPPOE_HASH_BITS=4, CONFIG_PPPOE_HASH_BITS_4=y,
+- CONFIG_PROBE_EVENTS_BTF_ARGS=y, CONFIG_STRCAT_KUNIT_TEST=m,
+- For both x86_64 and aarch64.
 
-* Mon Aug 28 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.49-1
-- Updated with the 6.1.49 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.49]
+* Wed Aug 23 2023 Akemi Yagi <toracat@elrepo.org> - 6.4.12-1
+- Updated with the 6.4.12 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.4.12]
 
-* Sat Aug 26 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.48-1
-- Updated with the 6.1.48 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.48]
+* Wed Aug 16 2023 Akemi Yagi <toracat@elrepo.org> - 6.4.11-1
+- Updated with the 6.4.11 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.4.11]
 
-* Wed Aug 23 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.47-1
-- Updated with the 6.1.47 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.47]
+* Fri Aug 11 2023 Akemi Yagi <toracat@elrepo.org> - 6.4.10-1
+- Updated with the 6.4.10 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.4.10]
 
-* Wed Aug 16 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.46-1
-- Updated with the 6.1.46 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.46]
-
-* Fri Aug 11 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.45-1
-- Updated with the 6.1.45 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.45]
-
-* Tue Aug 08 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.44-1
-- Updated with the 6.1.44 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.44]
+* Tue Aug 08 2023 Akemi Yagi <toracat@elrepo.org> - 6.4.9-1
+- Updated with the 6.4.9 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.4.9]
 - CONFIG_CPU_SRSO=y, CONFIG_ARCH_HAS_CPU_FINALIZE_INIT=y
 - For x86_64 only.
 
-* Thu Aug 03 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.43-1
-- Updated with the 6.1.43 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.43]
-- CONFIG_AMPERE_ERRATUM_AC03_CPU_38=y
+* Thu Aug 03 2023 Akemi Yagi <toracat@elrepo.org> - 6.4.8-1
+- Updated with the 6.4.8 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.4.8]
+
+* Thu Jul 27 2023 Akemi Yagi <toracat@elrepo.org> - 6.4.7-1
+- Updated with the 6.4.7 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.4.7]
+
+* Mon Jul 24 2023 Akemi Yagi <toracat@elrepo.org> - 6.4.6-1
+- Updated with the 6.4.6 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.4.6]
+
+* Sun Jul 23 2023 Akemi Yagi <toracat@elrepo.org> - 6.4.5-1
+- Updated with the 6.4.5 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.4.5]
+- CONFIG_AMPERE_ERRATUM_AC03_CPU_38=y,
 - For aarch64 only.
 
-* Thu Jul 27 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.42-1
-- Updated with the 6.1.42 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.42]
+* Wed Jul 19 2023 Akemi Yagi <toracat@elrepo.org> - 6.4.4-1
+- Updated with the 6.4.4 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.4.4]
+- CONFIG_INPUT_KUNIT_TEST=m, CONFIG_HID_KUNIT_TEST=m
 
-* Mon Jul 24 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.41-1
-- Updated with the 6.1.41 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.41]
+* Tue Jul 11 2023 Akemi Yagi <toracat@elrepo.org> - 6.4.3-1
+- Updated with the 6.4.3 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.4.3]
 
-* Sun Jul 23 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.40-1
-- Updated with the 6.1.40 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.40]
+* Wed Jul 05 2023 Akemi Yagi <toracat@elrepo.org> - 6.4.2-1
+- Updated with the 6.4.2 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.4.2]
 
-* Wed Jul 19 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.39-1
-- Updated with the 6.1.39 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.39]
-- CONFIG_HID_KUNIT_TEST=m
-
-* Wed Jul 05 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.38-1
-- Updated with the 6.1.38 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.38]
-
-* Sat Jul 01 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.37-1
-- Updated with the 6.1.37 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.37]
+* Sat Jul 01 2023 Akemi Yagi <toracat@elrepo.org> - 6.4.1-1
+- Updated with the 6.4.1 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.4.1]
 - Added: CONFIG_LOCK_MM_AND_FIND_VMA=y
 
-* Wed Jun 28 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.36-1
-- Updated with the 6.1.36 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.36]
+* Sun Jun 25 2023 Akemi Yagi <toracat@elrepo.org> - 6.4.0-1
+- Updated with the 6.4 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.4]
+- CONFIG_AIRO=m, CONFIG_ARCH_FORCE_MAX_ORDER=10,
+- CONFIG_ARM_PMUV3=y, CONFIG_BUILTIN_RETURN_ADDRESS_STRIPS_PAC=y,
+- CONFIG_CAVIUM_CPT=m, CONFIG_CRYPTO_DEV_CPT=m,
+- CONFIG_CRYPTO_DEV_HISTB_TRNG=m, CONFIG_CRYPTO_DEV_MARVELL=m,
+- CONFIG_CRYPTO_DEV_OCTEONTX2_CPT=m, CONFIG_CRYPTO_DEV_OCTEONTX_CPT=m,
+- CONFIG_DYNAMIC_FTRACE_WITH_DIRECT_CALLS=y, CONFIG_HAVE_DYNAMIC_FTRACE_WITH_DIRECT_CALLS=y,
+- CONFIG_IPQ_GCC_5332=m, CONFIG_IPQ_GCC_9574=m,
+- CONFIG_MSM_GCC_8917=m, CONFIG_PCIE_ALTERA=m,
+- CONFIG_PCIE_ALTERA_MSI=m, CONFIG_PCIE_AL=y,
+- CONFIG_PCIE_BRCMSTB=y, CONFIG_PCIE_CADENCE_HOST=y,
+- CONFIG_PCIE_CADENCE_PLAT=y, CONFIG_PCIE_CADENCE=y, 
+- CONFIG_PCIE_HISI_ERR=y, CONFIG_PCIE_MICROCHIP_HOST=y, 
+- CONFIG_PCIE_QCOM=y, CONFIG_PCIE_ROCKCHIP_DW_HOST=y, 
+- CONFIG_PCIE_XILINX=y, CONFIG_PCI_FTPCI100=y, 
+- CONFIG_PCI_HOST_COMMON=y, CONFIG_PCI_HOST_GENERIC=y, 
+- CONFIG_PCI_J721E_HOST=y, CONFIG_PCI_J721E=y, 
+- CONFIG_PCI_TEGRA=y, CONFIG_PCI_XGENE_MSI=y, 
+- CONFIG_PCI_XGENE=y, CONFIG_PINCTRL_MLXBF3=m, 
+- CONFIG_ROCKCHIP_ERRATUM_3588001=y, CONFIG_SA_GPUCC_8775P=m, 
+- CONFIG_SM_GCC_7150=m, CONFIG_SM_GPUCC_6115=m, 
+- CONFIG_SM_GPUCC_6125=m, CONFIG_SM_GPUCC_6375=m,
+- For aarch64 only.
+- CONFIG_ARCH_WANT_OPTIMIZE_VMEMMAP=y, CONFIG_DMA_DECLARE_COHERENT=y,
+- CONFIG_DTC=y, CONFIG_GPIO_ELKHARTLAKE=m,
+- CONFIG_GPIO_TANGIER=m, CONFIG_LENOVO_YMC=m,
+- CONFIG_LIBFDT=y, CONFIG_MSI_EC=m,
+- CONFIG_OF_EARLY_FLATTREE=y, CONFIG_OF_FLATTREE=y,
+- CONFIG_OF_RESERVED_MEM=y, CONFIG_PCIE_DW_HOST=y,
+- CONFIG_PCIE_DW=y, CONFIG_SND_SOC_SOF_HDA_MLINK=m
+- For x86_64 only.
+- CONFIG_ARCH_SUPPORTS_PER_VMA_LOCK=y, CONFIG_BLK_CGROUP_PUNT_BIO=y,
+- CONFIG_BLKDEV_UBLK_LEGACY_OPCODES=y, CONFIG_COMMON_CLK_SI521XX=m,
+- CONFIG_CRYPTO_DEV_NITROX_CNN55XX=m, CONFIG_CRYPTO_DEV_NITROX=m,
+- CONFIG_DRM_AMD_DC_FP=y, CONFIG_DRM_SUBALLOC_HELPER=m,
+- CONFIG_DRM_VIRTIO_GPU_KMS=y, CONFIG_GPIO_FXL6408=m,
+- CONFIG_GPIO_REGMAP=m, CONFIG_HAS_IOPORT=y,
+- CONFIG_IIO_GTS_HELPER=m, CONFIG_LEDS_BD2606MVV=m,
+- CONFIG_LIBWX=m, CONFIG_MAX_SKB_FRAGS=17,
+- CONFIG_MICROCHIP_T1S_PHY=m, CONFIG_MMU_LAZY_TLB_REFCOUNT=y,
+- CONFIG_NETFILTER_BPF_LINK=y, CONFIG_NET_HANDSHAKE_KUNIT_TEST=m,
+- CONFIG_NET_HANDSHAKE=y, CONFIG_NET_VENDOR_WANGXUN=y,
+- CONFIG_NGBE=m	, CONFIG_NXP_CBTX_PHY=m,
+- CONFIG_PCI_HYPERV_INTERFACE=m, CONFIG_PCI_MESON=m,
+- CONFIG_PDS_CORE=m, CONFIG_PER_VMA_LOCK=y,
+- CONFIG_PHYLIB_LEDS=y, CONFIG_REGMAP_KUNIT=m,
+- CONFIG_REGMAP_RAM=m, CONFIG_REGULATOR_RT4803=m,
+- CONFIG_REGULATOR_RT5739=m, CONFIG_ROHM_BU27034=m,
+- CONFIG_RTW88_8821CS=m, CONFIG_RTW88_8822BS=m,
+- CONFIG_RTW88_8822CS=m, CONFIG_RTW88_SDIO=m,
+- CONFIG_SENSORS_ACBEL_FSG032=m, CONFIG_SMBFS=m,
+- CONFIG_SND_SOC_CS35L56_I2C=m, CONFIG_SND_SOC_CS35L56=m,
+- CONFIG_SND_SOC_CS35L56_SHARED=m, CONFIG_SND_SOC_CS35L56_SPI=m,
+- CONFIG_TOUCHSCREEN_NOVATEK_NVT_TS=m, CONFIG_TXGBE=m,
+- CONFIG_USB_USS720=m, CONFIG_VHOST_TASK=y,
+- CONFIG_VIDEO_CMDLINE=y, CONFIG_XFS_DRAIN_INTENTS=y,
+- CONFIG_XFS_SUPPORT_ASCII_CI=y,
+- For both aarch64 and x86_64.
 
-* Wed Jun 21 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.35-1
-- Updated with the 6.1.35 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.35]
+* Wed Jun 21 2023 Akemi Yagi <toracat@elrepo.org> - 6.3.9-1
+- Updated with the 6.3.9 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.3.9]
 
-* Wed Jun 14 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.34-1
-- Updated with the 6.1.34 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.34]
+* Wed Jun 14 2023 Akemi Yagi <toracat@elrepo.org> - 6.3.8-1
+- Updated with the 6.3.8 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.3.8]
 
-* Fri Jun 09 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.33-1
-- Updated with the 6.1.33 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.33]
+* Fri Jun 09 2023 Akemi Yagi <toracat@elrepo.org> - 6.3.7-1
+- Updated with the 6.3.7 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.3.7]
 
-* Mon Jun 05 2023 Akemi Yagi <toracat@elrepo.org> - 6.1.32-1
-- Updated with the 6.1.32 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.32]
+* Mon Jun 05 2023 Akemi Yagi <toracat@elrepo.org> - 6.3.6-1
+- Updated with the 6.3.6 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.3.6]
 
-* Tue May 30 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.31-1
-- Updated with the 6.1.31 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.31]
+* Tue May 30 2023 Alan Bartlett <ajb@elrepo.org> - 6.3.5-1
+- Updated with the 6.3.5 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.3.5]
 
-* Wed May 24 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.30-1
-- Updated with the 6.1.30 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.30]
+* Wed May 24 2023 Alan Bartlett <ajb@elrepo.org> - 6.3.4-1
+- Updated with the 6.3.4 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.3.4]
 
-* Wed May 17 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.29-1
-- Updated with the 6.1.29 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.29]
+* Wed May 17 2023 Alan Bartlett <ajb@elrepo.org> - 6.3.3-1
+- Updated with the 6.3.3 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.3.3]
 
-* Wed May 10 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.28-1
-- Updated with the 6.1.28 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.28]
+* Wed May 10 2023 Alan Bartlett <ajb@elrepo.org> - 6.3.2-1
+- Updated with the 6.3.2 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.3.2]
 - CONFIG_ARCH_ROCKCHIP=y, CONFIG_PCIE_ROCKCHIP=y,
 - CONFIG_PCIE_ROCKCHIP_HOST=m, CONFIG_PCIE_ROCKCHIP_DW_HOST=y,
 - CONFIG_MTD_NAND_CORE=m, CONFIG_MTD_RAW_NAND=m,
@@ -1634,8 +1693,8 @@ fi
 - CONFIG_SND_SOC_RT5514_SPI=m, CONFIG_MMC_DW_ROCKCHIP=m,
 - CONFIG_COMMON_CLK_ROCKCHIP=y, CONFIG_CLK_PX30=y, CONFIG_CLK_RK3308=y,
 - CONFIG_CLK_RK3328=y, CONFIG_CLK_RK3368=y, CONFIG_CLK_RK3399=y,
-- CONFIG_CLK_RK3568=y, CONFIG_ROCKCHIP_TIMER=y, CONFIG_ROCKCHIP_MBOX=y,
-- CONFIG_ROCKCHIP_IOMMU=y, CONFIG_ROCKCHIP_GRF=y,
+- CONFIG_CLK_RK3568=y, CONFIG_CLK_RK3588=y, CONFIG_ROCKCHIP_TIMER=y,
+- CONFIG_ROCKCHIP_MBOX=y, CONFIG_ROCKCHIP_IOMMU=y, CONFIG_ROCKCHIP_GRF=y,
 - CONFIG_ROCKCHIP_IODOMAIN=m, CONFIG_ROCKCHIP_PM_DOMAINS=y,
 - CONFIG_ARM_RK3399_DMC_DEVFREQ=m, CONFIG_PM_DEVFREQ_EVENT=y,
 - CONFIG_DEVFREQ_EVENT_ROCKCHIP_DFI=m, CONFIG_ROCKCHIP_SARADC=m,
@@ -1649,70 +1708,152 @@ fi
 - CONFIG_NVMEM_ROCKCHIP_OTP=m and CONFIG_CRYPTO_DEV_ROCKCHIP=m
 - For aarch64 only. [https://elrepo.org/bugs/view.php?id=1345]
 
-* Sun Apr 30 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.27-1
-- Updated with the 6.1.27 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.27]
+* Sun Apr 30 2023 Alan Bartlett <ajb@elrepo.org> - 6.3.1-1
+- Updated with the 6.3.1 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.3.1]
 
-* Wed Apr 26 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.26-1
-- Updated with the 6.1.26 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.26]
+* Sun Apr 23 2023 Alan Bartlett <ajb@elrepo.org> - 6.3.0-1
+- Updated with the 6.3 source tarball.
+- CONFIG_AS_HAS_ARMV8_3=y, CONFIG_FUNCTION_ALIGNMENT_4B=y,
+- CONFIG_FUNCTION_ALIGNMENT_8B=y, CONFIG_FUNCTION_ALIGNMENT=8,
+- CONFIG_SENSORS_SMPRO=m, CONFIG_SENSORS_IIO_HWMON=m,
+- CONFIG_SENSORS_NTC_THERMISTOR=m, CONFIG_REGULATOR_CROS_EC=m,
+- CONFIG_SA_GCC_8775P=m, CONFIG_QDU_GCC_1000=m, CONFIG_SM_CAMCC_6350=m,
+- CONFIG_SM_DISPCC_8550=m, CONFIG_SM_TCSRCC_8550=m, CONFIG_PHY_QCOM_QMP_COMBO=m,
+- CONFIG_PHY_QCOM_QMP_PCIE=m, CONFIG_PHY_QCOM_QMP_PCIE_8996=m,
+- CONFIG_PHY_QCOM_QMP_UFS=m, CONFIG_PHY_QCOM_QMP_USB=m,
+- CONFIG_PHY_QCOM_SNPS_EUSB2=m, CONFIG_PHY_QCOM_EUSB2_REPEATER=m,
+- CONFIG_HAVE_DYNAMIC_FTRACE_WITH_CALL_OPS=y, CONFIG_DYNAMIC_FTRACE_WITH_CALL_OPS=y,
+- CONFIG_ULTRASOC_SMB=m, CONFIG_CORESIGHT_TPDM=m and CONFIG_CORESIGHT_TPDA=m
+- For aarch64 only.
+- CONFIG_AS_GFNI=y, CONFIG_THERMAL_ACPI=y, CONFIG_INTEL_TCC=y,
+- CONFIG_INTEL_IOMMU_PERF_EVENTS=y, CONFIG_IDLE_INJECT=y,
+- CONFIG_CRYPTO_ARIA_AESNI_AVX2_X86_64=m and CONFIG_CRYPTO_ARIA_GFNI_AVX512_X86_64=m
+- For x86_64 only.
+- CONFIG_SCHED_MM_CID=y, CONFIG_KVM_GENERIC_HARDWARE_ENABLING=y,
+- CONFIG_ZSMALLOC_CHAIN_SIZE=8, CONFIG_NF_CONNTRACK_OVS=y,
+- CONFIG_NET_SCH_MQPRIO_LIB=m, CONFIG_NCN26000_PHY=m, CONFIG_AT803X_PHY=m,
+- CONFIG_ATH12K=m, CONFIG_SERIAL_8250_PCILIB=y, CONFIG_SERIAL_8250_PCI1XXXX=y,
+- CONFIG_SENSORS_MC34VR500=m, CONFIG_SENSORS_IR38064_REGULATOR=y,
+- CONFIG_SENSORS_LM25066_REGULATOR=y, CONFIG_SENSORS_LTC2978_REGULATOR=y,
+- CONFIG_SENSORS_MPQ7932_REGULATOR=y, CONFIG_SENSORS_MPQ7932=m,
+- CONFIG_SENSORS_PLI1209BC_REGULATOR=y, CONFIG_SENSORS_TDA38640=m,
+- CONFIG_SENSORS_TDA38640_REGULATOR=y, CONFIG_SENSORS_XDPE122_REGULATOR=y,
+- CONFIG_REGULATOR_MAX20411=m, CONFIG_UVC_COMMON=m, CONFIG_BACKLIGHT_KTZ8866=m,
+- CONFIG_SND_SOC_AW88395_LIB=m, CONFIG_SND_SOC_AW88395=m, CONFIG_SND_SOC_IDT821034=m,
+- CONFIG_SND_SOC_PEB2466=m, CONFIG_SND_SOC_SMA1303=m, CONFIG_HID_SUPPORT=y,
+- CONFIG_HID_EVISION=m, CONFIG_I2C_HID=y, CONFIG_TYPEC_MUX_GPIO_SBU=m,
+- CONFIG_XILINX_XDMA=m, CONFIG_SNET_VDPA=m, CONFIG_DEV_DAX_CXL=m,
+- CONFIG_LEGACY_DIRECT_IO=y, CONFIG_EROFS_FS_PCPU_KTHREAD=y,
+- CONFIG_RPCSEC_GSS_KRB5_CRYPTOSYSTEM=y, CONFIG_RPCSEC_GSS_KRB5_ENCTYPES_AES_SHA1=y and
+- CONFIG_HASHTABLE_KUNIT_TEST=m
+- For both aarch64 and x86_64.
 
-* Thu Apr 20 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.25-1
-- Updated with the 6.1.25 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.25]
+* Thu Apr 20 2023 Alan Bartlett <ajb@elrepo.org> - 6.2.12-1
+- Updated with the 6.2.12 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.2.12]
 
-* Fri Apr 14 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.24-1
-- Updated with the 6.1.24 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.24]
+* Fri Apr 14 2023 Alan Bartlett <ajb@elrepo.org> - 6.2.11-1
+- Updated with the 6.2.11 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.2.11]
 - CONFIG_EROFS_FS=m, CONFIG_EROFS_FS_XATTR=y,
 - CONFIG_EROFS_FS_POSIX_ACL=y, CONFIG_EROFS_FS_SECURITY=y,
 - CONFIG_EROFS_FS_ZIP=y and CONFIG_EROFS_FS_ZIP_LZMA=y
 - [https://elrepo.org/bugs/view.php?id=1343]
 
-* Wed Apr 05 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.23-1
-- Updated with the 6.1.23 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.23]
+* Wed Apr 05 2023 Alan Bartlett <ajb@elrepo.org> - 6.2.10-1
+- Updated with the 6.2.10 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.2.10]
 
-* Thu Mar 30 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.22-1
-- Updated with the 6.1.22 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.22]
+* Thu Mar 30 2023 Alan Bartlett <ajb@elrepo.org> - 6.2.9-1
+- Updated with the 6.2.9 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.2.9]
 
-* Wed Mar 22 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.21-1
-- Updated with the 6.1.21 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.21]
+* Wed Mar 22 2023 Alan Bartlett <ajb@elrepo.org> - 6.2.8-1
+- Updated with the 6.2.8 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.2.8]
 
-* Fri Mar 17 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.20-1
-- Updated with the 6.1.20 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.20]
+* Fri Mar 17 2023 Alan Bartlett <ajb@elrepo.org> - 6.2.7-1
+- Updated with the 6.2.7 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.2.7]
 
-* Mon Mar 13 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.19-1
-- Updated with the 6.1.19 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.19]
+* Tue Mar 14 2023 Alan Bartlett <ajb@elrepo.org> - 6.2.6-1
+- Updated with the 6.2.6 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.2.6]
 
-* Sat Mar 11 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.18-1
-- Updated with the 6.1.18 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.18]
+* Sat Mar 11 2023 Alan Bartlett <ajb@elrepo.org> - 6.2.5-1
+- Updated with the 6.2.5 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.2.5]
 
-* Sat Mar 11 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.17-1
-- Updated with the 6.1.17 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.17]
+* Sat Mar 11 2023 Alan Bartlett <ajb@elrepo.org> - 6.2.4-1
+- Updated with the 6.2.4 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.2.4]
 
-* Fri Mar 10 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.16-1
-- Updated with the 6.1.16 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.16]
+* Fri Mar 10 2023 Alan Bartlett <ajb@elrepo.org> - 6.2.3-1
+- Updated with the 6.2.3 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.2.3]
 
-* Fri Mar 03 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.15-1
-- Updated with the 6.1.15 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.15]
+* Fri Mar 03 2023 Alan Bartlett <ajb@elrepo.org> - 6.2.2-1
+- Updated with the 6.2.2 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.2.2]
 
-* Sat Feb 25 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.14-1
-- Updated with the 6.1.14 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.14]
+* Sat Feb 25 2023 Alan Bartlett <ajb@elrepo.org> - 6.2.1-1
+- Updated with the 6.2.1 source tarball.
+- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.2.1]
 
-* Wed Feb 22 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.13-1
-- Updated with the 6.1.13 source tarball.
-- [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.13]
-- Converted this specification file to build a kernel-lt package set.
+* Sun Feb 19 2023 Alan Bartlett <ajb@elrepo.org> - 6.2.0-1
+- Updated with the 6.2 source tarball.
+- CONFIG_GCC_SUPPORTS_DYNAMIC_FTRACE_WITH_ARGS=y,
+- CONFIG_ARM64_ERRATUM_2645198=y, CONFIG_ACPI_APMT=y,
+- CONFIG_HAVE_KVM_DIRTY_RING=y, CONFIG_HAVE_KVM_DIRTY_RING_ACQ_REL=y,
+- CONFIG_NEED_KVM_DIRTY_RING_WITH_BITMAP=y, CONFIG_FUNCTION_ALIGNMENT=0,
+- CONFIG_ARCH_USES_PG_ARCH_X=y, CONFIG_MTD_BRCM_U_BOOT=m,
+- CONFIG_DWMAC_TEGRA=m, CONFIG_TOUCHSCREEN_WM97XX=m,
+- CONFIG_TOUCHSCREEN_WM9705=y, CONFIG_TOUCHSCREEN_WM9712=y,
+- CONFIG_TOUCHSCREEN_WM9713=y, CONFIG_TOUCHSCREEN_SUR40=m,
+- CONFIG_TOUCHSCREEN_COLIBRI_VF50=m, CONFIG_VIDEOBUF2_DMA_SG=m,
+- CONFIG_DRM_AMD_DC_DCN=y, CONFIG_SC_DISPCC_8280XP=m,
+- CONFIG_SM_DISPCC_6375=m, CONFIG_SM_GCC_8550=m, CONFIG_NTB_IDT=m,
+- CONFIG_NTB_EPF=m, CONFIG_NTB_SWITCHTEC=m, CONFIG_ARM_SCMI_POWERCAP=m,
+- CONFIG_ARM_CORESIGHT_PMU_ARCH_SYSTEM_PMU=m,
+- CONFIG_CRYPTO_SM4_ARM64_CE_CCM=m, CONFIG_CRYPTO_SM4_ARM64_CE_GCM=m,
+- CONFIG_HAVE_DYNAMIC_FTRACE_WITH_ARGS=y and
+- CONFIG_DYNAMIC_FTRACE_WITH_ARGS=y
+- For aarch64 only.
+- CONFIG_EFI_HANDOVER_PROTOCOL=y, CONFIG_CC_HAS_ENTRY_PADDING=y,
+- CONFIG_FUNCTION_PADDING_CFI=11, CONFIG_FUNCTION_PADDING_BYTES=16,
+- CONFIG_CALL_PADDING=y, CONFIG_HAVE_CALL_THUNKS=y, CONFIG_CALL_THUNKS=y,
+- CONFIG_PREFIX_SYMBOLS=y, CONFIG_CALL_DEPTH_TRACKING=y, CONFIG_KVM_SMM=y,
+- CONFIG_FUNCTION_ALIGNMENT_4B=y, CONFIG_FUNCTION_ALIGNMENT_16B=y,
+- CONFIG_FUNCTION_ALIGNMENT=16, CONFIG_SENSORS_OCC_P8_I2C=m,
+- CONFIG_SENSORS_OCC=m, CONFIG_SENSORS_OXP=m, CONFIG_ADVANTECH_EC_WDT=m,
+- CONFIG_REGULATOR_CROS_EC=m, CONFIG_REGULATOR_TPS68470=m,
+- CONFIG_DRM_I915_PREEMPT_TIMEOUT_COMPUTE=7500,
+- CONFIG_SND_SOC_INTEL_AVS_MACH_MAX98927=m,
+- CONFIG_SND_SOC_INTEL_AVS_MACH_MAX98373=m,
+- CONFIG_SND_SOC_INTEL_AVS_MACH_PROBE=m, CONFIG_MANA_INFINIBAND=m,
+- CONFIG_DELL_WMI_DDV=m, CONFIG_X86_PLATFORM_DRIVERS_HP=y,
+- CONFIG_INTEL_IFS=m,
+- CONFIG_ARCH_HAS_CPU_CACHE_INVALIDATE_MEMREGION=y and
+- CONFIG_HAVE_OBJTOOL_NOP_MCOUNT=y
+- For x86_64 only.
+- CONFIG_LD_ORPHAN_WARN_LEVEL="warn", CONFIG_ARCH_HAS_NMI_SAFE_THIS_CPU_OPS=y,
+- CONFIG_NF_NAT_OVS=y, CONFIG_BT_LE_L2CAP_ECRED=y,
+- CONFIG_BT_HCIBTUSB_POLL_SYNC=y, CONFIG_BT_HCIBCM4377=m, CONFIG_FW_CS_DSP=m,
+- CONFIG_LIBWX=m, CONFIG_VCAP=y, CONFIG_NFP_NET_IPSEC=y, CONFIG_MT7996E=m,
+- CONFIG_RTW88_USB=m, CONFIG_RTW88_8822BU=m, CONFIG_RTW88_8822CU=m,
+- CONFIG_RTW88_8723DU=m, CONFIG_RTW88_8821CU=m, CONFIG_RTW89_8852B=m,
+- CONFIG_RTW89_8852BE=m, CONFIG_TOUCHSCREEN_CYTTSP5=m,
+- CONFIG_TOUCHSCREEN_HYNITRON_CSTXXX=m, CONFIG_TOUCHSCREEN_HIMAX_HX83112B=m,
+- CONFIG_LEGACY_TIOCSTI=y, CONFIG_SSIF_IPMI_BMC=m, CONFIG_GPIO_IDIO_16=m,
+- CONFIG_MFD_SMPRO=m, CONFIG_REGULATOR_RT6190=m, CONFIG_VIDEO_NOMODESET=y,
+- CONFIG_SND_SOC_WM8961=m, CONFIG_VFIO_CONTAINER=y, CONFIG_VFIO_VIRQFD=y,
+- CONFIG_CROS_HPS_I2C=m, CONFIG_IOMMUFD=m, CONFIG_SQUASHFS_DECOMP_SINGLE=y,
+- CONFIG_SQUASHFS_COMPILE_DECOMP_SINGLE=y, CONFIG_CRYPTO_LIB_GF128MUL=y,
+- CONFIG_INTERVAL_TREE_SPAN_ITER=y, CONFIG_DEBUG_INFO_COMPRESSED_NONE=y,
+- CONFIG_MEMCPY_SLOW_KUNIT_TEST=y, CONFIG_STRSCPY_KUNIT_TEST=m and
+- CONFIG_SIPHASH_KUNIT_TEST=m
+- For both aarch64 and x86_64.
 
 * Wed Feb 15 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.12-1
 - Updated with the 6.1.12 source tarball.
@@ -1728,7 +1869,7 @@ fi
 - CONFIG_NTB_NETDEV=m, CONFIG_NTB=m, CONFIG_NTB_MSI=y,
 - CONFIG_NTB_PINGPONG=m, CONFIG_NTB_TOOL=m, CONFIG_NTB_PERF=m,
 - CONFIG_NTB_MSI_TEST=m and CONFIG_NTB_TRANSPORT=m
-- For aarch64 [https://elrepo.org/bugs/view.php?id=1322]
+- For aarch64 only. [https://elrepo.org/bugs/view.php?id=1322]
 
 * Wed Feb 01 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.9-1
 - Updated with the 6.1.9 source tarball.
@@ -1794,7 +1935,7 @@ fi
 - CONFIG_DVB_ATBM8830=m, CONFIG_DVB_ISL6421=m, CONFIG_DVB_ISL6423=m,
 - CONFIG_DVB_IX2505V=m, CONFIG_DVB_LGS8GXX=m, CONFIG_DVB_LNBP21=m,
 - CONFIG_DVB_LNBP22=m, CONFIG_DVB_M88RS2000=m and CONFIG_DVB_SP2=m
-- For aarch64 and x86_64. [https://elrepo.org/bugs/view.php?id=1321]
+- For both aarch64 and x86_64. [https://elrepo.org/bugs/view.php?id=1321]
 
 * Wed Jan 25 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.8-1
 - Updated with the 6.1.8 source tarball.
@@ -1812,7 +1953,7 @@ fi
 - Updated with the 6.1.5 source tarball.
 - [https://www.kernel.org/pub/linux/kernel/v6.x/ChangeLog-6.1.5]
 - CONFIG_BLK_DEV_FD=m
-- For x86_64 [https://elrepo.org/bugs/view.php?id=1308]
+- For x86_64 only. [https://elrepo.org/bugs/view.php?id=1308]
 
 * Fri Jan 06 2023 Alan Bartlett <ajb@elrepo.org> - 6.1.4-1
 - Updated with the 6.1.4 source tarball.
@@ -1879,9 +2020,9 @@ fi
 - CONFIG_PHY_NS2_USB_DRD=y, CONFIG_PHY_BRCM_SATA=y, CONFIG_PHY_BRCM_USB=y,
 - CONFIG_PHY_BCM_SR_PCIE=y, CONFIG_NVMEM_BCM_OCOTP=y and
 - CONFIG_CRYPTO_DEV_BCM_SPU=m
-- For aarch64. [https://elrepo.org/bugs/view.php?id=1299]
+- For aarch64 only. [https://elrepo.org/bugs/view.php?id=1299]
 - CONFIG_BLK_DEV_UBLK=m
-- For aarch64 and x86_64. [https://elrepo.org/bugs/view.php?id=1300]
+- For both aarch64 and x86_64. [https://elrepo.org/bugs/view.php?id=1300]
 
 * Sun Dec 11 2022 Alan Bartlett <ajb@elrepo.org> - 6.1.0-1
 - Updated with the 6.1 source tarball.
