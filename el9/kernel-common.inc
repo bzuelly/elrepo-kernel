@@ -33,7 +33,7 @@
 %global pkg_version %{LKAver}
 
 # Set pkg_release.
-%global pkg_release 1%{?rc_ver:.%{rc_ver}}%{?next_snapshot_date:.%{next_snapshot_date}}%{?buildid}%{?dist}
+%global pkg_release %{rel_ver}%{?rc_ver:.%{rc_ver}}%{?next_snapshot_date:.%{next_snapshot_date}}%{?buildid}%{?dist}
 
 # Architectures upon which we can sign the kernel
 # for secure boot authentication.
@@ -557,7 +557,7 @@ cp config-%{version}-%{_target_cpu} .config
 %{__make} -s ARCH=%{bldarch} listnewconfig | grep -E '^CONFIG_' > newoptions-el9-%{_target_cpu}.txt || true
 if [ -s newoptions-el9-%{_target_cpu}.txt ]; then
 	cat newoptions-el9-%{_target_cpu}.txt
-%if "%{name}" == "kernel-ml" || "%{name}" == "kernel-ml"
+%if "%{name}" == "kernel-ml" || "%{name}" == "kernel-lt"
 	exit 1
 %endif
 fi
