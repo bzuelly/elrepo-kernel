@@ -1,7 +1,7 @@
 %global major_ver 6
 %global minor_ver 5
 %global patch_ver 8
-%global rel_ver   1
+%global rel_ver   0
 
 Name: kernel-ml
 

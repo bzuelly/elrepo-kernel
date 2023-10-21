@@ -2,7 +2,7 @@
 %global minor_ver 6
 %global patch_ver 0
 %global next_snapshot_date 20231020
-%global rel_ver   1
+%global rel_ver   0
 
 Name: kernel-next
 
