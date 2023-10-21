@@ -33,7 +33,7 @@
 %global pkg_version %{LKAver}
 
 # Set pkg_release.
-%global pkg_release 1%{?buildid}%{?dist}
+%global pkg_release 1%{?rc_ver:.%{rc_ver}}%{?next_snapshot_date:.%{next_snapshot_date}}%{?buildid}%{?dist}
 
 # Architectures upon which we can sign the kernel
 # for secure boot authentication.
@@ -210,8 +210,6 @@ BuildConflicts: rhbuildsys(DiskFree) < 500Mb
 ###
 ### Sources
 ###
-Source0: https://cdn.kernel.org/pub/linux/kernel/v%{major_ver}.x/linux-%{version}.tar.xz
-
 Source2: config-%{version}-x86_64
 Source4: config-%{version}-aarch64
 
